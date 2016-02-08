@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
-import KanbanBoard from './kanban-board';
+import KanbanBoard from './board';
 import update from 'react-addons-update';
+import { thottle } from './utils';
 import 'whatwg-fetch';
 import 'babel-polyfill';
 
@@ -17,6 +18,9 @@ class KanbanBoardContainer extends Component {
         this.state = {
             cards: []
         };
+
+        this.updateCardStatus = thottle(this.updateCardStatus.bind(this));
+        this.updateCardPosition = thottle(this.updateCardPosition.bind(this), 500);
     }
 
     componentDidMount () {
@@ -37,8 +41,9 @@ class KanbanBoardContainer extends Component {
             <KanbanBoard cards={this.state.cards}
                  tasksActions={tasksActions}
                  cardActions={{
-                     updateStatus: this.updateCardStatus.bind(this),
-                     updatePosition: this.updateCardPosition.bind(this)
+                     updateStatus: this.updateCardStatus,
+                     updatePosition: this.updateCardPosition,
+                     persistCardDrag: this.persistCardDrag.bind(this)
                  }}/>
         );
     }
@@ -130,6 +135,26 @@ class KanbanBoardContainer extends Component {
                 }
             }));
         }
+    }
+
+    persistCardDrag (cardId, status) {
+        let cardIndex = this.retrieveCardIndex(cardId);
+        let card = this.state.cards[cardIndex];
+
+        fetch(`${API_URL}/cards/${cardId}`, {
+            method: 'put',
+            headers: API_HEADERS,
+            body: JSON.stringify({status: card.status, row_order_position: cardIndex});
+        }).catch((error) => {
+            console.error(error);
+            this.setState(update(this.state, {
+                cards: {
+                    [cardIndex]: {
+                        status: {$set: status}
+                    }
+                }
+            }));
+        });
     }
 
     retrieveCardIndex (cardId) {

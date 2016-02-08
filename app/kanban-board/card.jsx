@@ -15,14 +15,31 @@ let titlePropType = (props, propName, componentName) => {
 const cardDragSpec = {
     beginDrag (props) {
         return {
-            id: props.id
+            id: props.id,
+            status:props.status
         };
+    },
+    endDrag (props) {
+        props.cardActions.persistCardDrag(props.id, props.status);
     }
 };
+
+const cardDropSpec = {
+    hover (props, monitor) {
+        const draggedId = monitor.getItem().id;
+        props.cardActions.updatePosition(draggedId, props.id);
+    }
+}
 
 let collectDrag = (connect, monitor) => {
     return {
         connectDragSource: connect.dragSource()
+    };
+};
+
+let collectDrop = (connect, monitor) {
+    return {
+        connectDropTarget: connect.dropTarget()
     };
 };
 
@@ -37,7 +54,7 @@ class Card extends Component {
 
     render () {
 
-        const { connectDragSource } = this.props;
+        const { connectDragSource, connectDropTarget } = this.props;
 
         let details = this.state.showDetails ? (
             <div className="card_details">
@@ -56,7 +73,7 @@ class Card extends Component {
             backgroundColor: this.props.color
         };
 
-        return connectDragSource(
+        return connectDropTarget(
             <div className="card">
                 <div style={sideColor}></div>
                 <div className={this.state.showDetails ? "card__title card__title--is-open" : "card__title"}
@@ -85,7 +102,12 @@ Card.propTypes = {
     tasks: PropTypes.arrayOf(PropTypes.object),
     tasksActions: PropTypes.object,
     cardActions: PropTypes.object,
-    connectDragSource: PropTypes.func.isRequired
+    connectDragSource: PropTypes.func.isRequired,
+    connectDropTarget: PropTypes.func.isRequired
 };
 
-export default DragSource( constants.CARD, cardDragSpec, collectDrag )(Card);
+const dragHighOrderCard = DragSource(constants.CARD, cardDragSpec, collectDrag)(Card);
+const dragDropHighOrderCard =
+    DropTarget(constants.CARD, cardDropSpec, collectDrop)(dragDropHighOrderCard);
+
+export default dragDropHighOrderCard;
