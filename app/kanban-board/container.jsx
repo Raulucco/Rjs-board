@@ -37,15 +37,44 @@ class KanbanBoardContainer extends Component {
             add: this.addTasks.bind(this)
         };
 
-        return (
-            <KanbanBoard cards={this.state.cards}
-                 tasksActions={tasksActions}
-                 cardActions={{
-                     updateStatus: this.updateCardStatus,
-                     updatePosition: this.updateCardPosition,
-                     persistCardDrag: this.persistCardDrag.bind(this)
-                 }}/>
-        );
+        // return (
+        //     <KanbanBoard cards={this.state.cards}
+        //          tasksActions={tasksActions}
+        //          cardActions={{
+        //              updateStatus: this.updateCardStatus,
+        //              updatePosition: this.updateCardPosition,
+        //              persistCardDrag: this.persistCardDrag.bind(this)
+        //          }}/>
+        // );
+
+        return this.props.children && React.cloneElement(this.props.children, {
+            cards: this.state.cards,
+            tasksActions: tasksActions,
+            cardActions: {
+                addCard: this.addCard.bind(this),
+                updateCard: this.updateCard.bind(this),
+                updateStatus: this.updateCardStatus,
+                updatePosition: this.updateCardPosition,
+                persistCardDrag: this.persistCardDrag.bind(this)
+            }
+        });
+    }
+
+    addCard (card) {
+        fetch(`$API_URL/cards`, {
+            method: 'post',
+            headers: API_HEADERS,
+            body: JSON.stringify(Object.assign({}, card, {id: card.id || Date.now()})
+        })
+        .then((response) => response.json())
+        .then((response) => {
+            card.id = response.id;
+            this.setState(update(this.state.cards, {$push: [card]}));
+        })
+        .catch(function (error) {
+            console.log(error);
+            throw new Error(error);
+        });
     }
 
     addTasks (cardId, taskName) {
